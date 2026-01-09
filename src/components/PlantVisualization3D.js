@@ -1,19 +1,17 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, OrbitControls, Environment, ContactShadows, Html } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useRef } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { useGLTF, OrbitControls, Environment } from '@react-three/drei';
 
 // REALISTIC GLTF PLANT MODEL - CENTERED AND CLEARLY VISIBLE
 function PlantModel({ photosynthesisRate, stressLevel }) {
   const { scene } = useGLTF("/models/plant.glb");
-  const plantRef = useRef();
 
   // Normalized values from simulation
   const growth = Math.max(0, Math.min(1, photosynthesisRate / 100));
   const stress = Math.max(0, Math.min(1, stressLevel / 100));
 
-  // Base overall scale for screen-filling visibility
-  const baseScale = 5.0; // much larger to fit screen
+  // Make the plant ULTRA-FOCUSED - extreme close-up
+  const baseScale = 50.0; // Maximum scale for ultra-close plant focus
 
   // Apply visual effects once per render
   // Uniform X/Z scale for size, Y scale for growth
@@ -23,8 +21,8 @@ function PlantModel({ photosynthesisRate, stressLevel }) {
     baseScale
   );
 
-  // Position plant ON the ground plane (not floating)
-  scene.position.set(0, -1.6, 0); // match ground plane position
+  // Position plant at center, visible in camera view
+  scene.position.set(0, 0, 0); // Center origin for best visibility
 
   // Stress colour progression: green  yellow  brown
   scene.traverse((child) => {
@@ -38,38 +36,10 @@ function PlantModel({ photosynthesisRate, stressLevel }) {
   });
 
   // Return plant centered and grounded
-  return <primitive ref={plantRef} object={scene} />;
+  return <primitive object={scene} />;
 }
 
-// CLEAN STATUS DISPLAY
-function PlantStatusDisplay({ photosynthesisRate, stressLevel }) {
-  const getStatus = (rate) => {
-    if (rate > 80) return { label: 'Thriving', color: '#22C55E', icon: '🌿' };
-    if (rate > 60) return { label: 'Healthy', color: '#84CC16', icon: '🌱' };
-    if (rate > 40) return { label: 'Stressed', color: '#EAB308', icon: '⚠️' };
-    return { label: 'Dying', color: '#EF4444', icon: '🥀' };
-  };
-
-  const status = getStatus(photosynthesisRate);
-
-  return (
-    <Html position={[0, 2, 0]} center>
-      <div className="bg-black/90 backdrop-blur-sm rounded-lg px-4 py-3 border border-gray-600">
-        <div className="flex items-center gap-3 text-white">
-          <span className="text-xl">{status.icon}</span>
-          <div>
-            <div className="font-bold text-lg" style={{ color: status.color }}>
-              {status.label}
-            </div>
-            <div className="text-sm text-gray-300">
-              Rate: {photosynthesisRate.toFixed(0)}%
-            </div>
-          </div>
-        </div>
-      </div>
-    </Html>
-  );
-}
+// CLEAN STATUS DISPLAY - REMOVED Html COMPONENT TO USE BOTTOM POSITIONING
 
 // MAIN COMPONENT - CLEAN AND FOCUSED
 const PlantVisualization3D = ({ 
@@ -78,17 +48,16 @@ const PlantVisualization3D = ({
   photosynthesisRate,
   limitingFactor 
 }) => {
-  const { light, co2, temperature } = environmentalFactors;
   const stressLevel = 100 - plantHealth;
   
   return (
     <div className="w-full h-[500px] bg-gradient-to-b from-slate-900 to-slate-800 rounded-xl overflow-hidden border border-slate-700 relative">
       <Canvas
         camera={{ 
-          position: [0, 0, 4], // Front view, further back to see full large plant
-          fov: 50,
+          position: [0, 3, 8], // Ultra-close for maximum plant focus
+          fov: 65, // Wide FOV for close-up plant details
           near: 0.1,
-          far: 100
+          far: 200
         }}
         shadows
         gl={{ 
@@ -97,10 +66,10 @@ const PlantVisualization3D = ({
           powerPreference: "high-performance"
         }}
       >
-        {/* FRONT-VIEW OPTIMIZED LIGHTING */}
-        <ambientLight intensity={0.7} />
+        {/* CLOSE-UP HERO VIEW LIGHTING */}
+        <ambientLight intensity={0.8} />
         <directionalLight
-          position={[0, 3, 4]} // from front-top
+          position={[0, 2.5, 3]} // softer light for close camera
           intensity={1}
           castShadow
           shadow-mapSize={[1024, 1024]}
@@ -111,22 +80,13 @@ const PlantVisualization3D = ({
         
         {/* SOIL GROUND */}
         <mesh 
-          position={[0, -1.6, 0]} 
+          position={[0, -15, 0]} // Ground well below the massive plant base
           rotation={[-Math.PI / 2, 0, 0]} 
           receiveShadow
         >
-          <planeGeometry args={[6, 6]} />
+          <planeGeometry args={[60, 60]} />
           <meshStandardMaterial color="#2D1810" roughness={0.9} />
         </mesh>
-
-        {/* CONTACT SHADOWS */}
-        <ContactShadows
-          position={[0, -1.59, 0]}
-          scale={4}
-          far={2}
-          blur={1}
-          opacity={0.5}
-        />
 
         {/* THE REALISTIC GLTF PLANT */}
         <PlantModel
@@ -134,26 +94,39 @@ const PlantVisualization3D = ({
           stressLevel={stressLevel}
         />
 
-        {/* PLANT STATUS */}
-        <PlantStatusDisplay
-          photosynthesisRate={photosynthesisRate}
-          stressLevel={stressLevel}
-        />
-
-        {/* ORBIT CONTROLS - FRONT VIEW WITH ZOOM FOR LARGE PLANT */}
+        {/* PLANT-FOCUSED ORBIT CONTROLS - NO DRIFTING */}
         <OrbitControls
+          target={[0, 0, 0]} // plant center at origin - camera orbits around plant
           enableRotate={true}
           enableZoom={true}
-          enablePan={false}
-          target={[0, -0.5, 0]} // target the plant on the ground plane
-          minDistance={2} // allow close zoom
-          maxDistance={8} // allow zoom out to see full plant
+          enablePan={false} // CRITICAL - no drifting away
+          minDistance={5} // extremely close zoom for plant details
+          maxDistance={15} // moderate zoom out for ultra-focused view
+          minPolarAngle={Math.PI / 3} // prevent bad top angles
           maxPolarAngle={Math.PI / 2.1} // prevent going under ground
-          minPolarAngle={Math.PI / 6} // reasonable top view limit
           enableDamping={true}
           dampingFactor={0.05}
         />
       </Canvas>
+
+      {/* PLANT STATUS INDICATOR */}
+      <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-sm rounded-lg p-3 border border-gray-600">
+        <div className="flex items-center gap-3 text-white">
+          <span className="text-xl">
+            {photosynthesisRate > 80 ? '🌿' : photosynthesisRate > 60 ? '🌱' : photosynthesisRate > 40 ? '⚠️' : '🥀'}
+          </span>
+          <div>
+            <div className="font-bold text-lg" style={{ 
+              color: photosynthesisRate > 80 ? '#22C55E' : photosynthesisRate > 60 ? '#84CC16' : photosynthesisRate > 40 ? '#EAB308' : '#EF4444' 
+            }}>
+              {photosynthesisRate > 80 ? 'Thriving' : photosynthesisRate > 60 ? 'Healthy' : photosynthesisRate > 40 ? 'Stressed' : 'Dying'}
+            </div>
+            <div className="text-sm text-gray-300">
+              Rate: {photosynthesisRate.toFixed(0)}%
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* CLEAN GROWTH INDICATOR */}
       <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-sm rounded-lg p-3 border border-gray-600">
