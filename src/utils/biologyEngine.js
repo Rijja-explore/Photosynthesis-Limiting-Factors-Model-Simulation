@@ -171,6 +171,15 @@ export const generateExplanation = (factors, limitingFactor, photosynthesisRate)
         });
       }
       break;
+    
+    default:
+      explanations.push({
+        type: 'info',
+        title: 'Balanced Conditions',
+        explanation: 'Environmental conditions are well-balanced for photosynthesis.',
+        biologicalReason: 'No single factor is significantly limiting the photosynthetic process.'
+      });
+      break;
   }
   
   // Secondary factor analysis
@@ -229,6 +238,15 @@ export const generateRecommendations = (factors, limitingFactor) => {
         impact: `Enhance carbon fixation and increase rate by ${Math.round(co2Increase * 0.4)}%`,
         priority: co2 < 250 ? 'high' : 'medium',
         method: 'Improve ventilation, add CO₂ supplementation, or organic decomposition'
+      });
+      break;
+    
+    default:
+      recommendations.push({
+        action: 'Maintain current balanced conditions',
+        impact: 'Optimal photosynthetic efficiency achieved',
+        priority: 'low',
+        method: 'Continue monitoring environmental factors'
       });
       break;
   }
@@ -307,7 +325,7 @@ export const SCENARIO_PRESETS = {
   }
 };
 
-export default {
+const biologyEngine = {
   calculatePhotosynthesisRate,
   identifyLimitingFactor,
   generateExplanation,
@@ -317,3 +335,5 @@ export default {
   OPTIMAL_CONDITIONS,
   CRITICAL_THRESHOLDS
 };
+
+export default biologyEngine;

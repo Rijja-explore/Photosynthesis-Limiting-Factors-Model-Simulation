@@ -1,11 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { runTimeLapseSimulation } from '../utils/photosynthesisLogic';
 
-const TimeLapse = ({ active, onToggle, plantHistory }) => {
+const TimeLapse = ({ active, onToggle, plantHistory, environmentalFactors, currentPhotosynthesisRate }) => {
   const [timeScale, setTimeScale] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentDay, setCurrentDay] = useState(0);
+  const [simulationData, setSimulationData] = useState([]);
+
+  // Regenerate simulation data when environmental factors change
+  useEffect(() => {
+    const generateTimelapseData = () => {
+      // Use actual logic-based simulation if environmental factors provided
+      if (environmentalFactors && environmentalFactors.light !== undefined) {
+        // Create dynamic simulation based on CURRENT environmental conditions
+        const currentConditions = {
+          light: environmentalFactors.light,
+          co2: environmentalFactors.co2,
+          temperature: environmentalFactors.temperature
+        };
+        
+        const simulationData = runTimeLapseSimulation(currentConditions, 30);
+        
+        return simulationData.map((point, index) => ({
+          day: point.time || index + 1,
+          photosynthesisRate: (point.rate * 100),
+          growth: Math.min(100, (point.rate * 100)),
+          health: Math.min(100, Math.max(10, point.rate * 100)),
+          light: currentConditions.light,
+          co2: currentConditions.co2,
+          temperature: currentConditions.temperature
+        }));
+      }
+      
+      // Fallback if no factors provided
+      if (!plantHistory || plantHistory.length === 0) return [];
+      
+      const data = [];
+      const startingHealth = plantHistory[0]?.health || 85;
+      
+      for (let day = 0; day < 30; day++) {
+        const currentFactors = plantHistory[Math.min(day, plantHistory.length - 1)]?.factors || {
+          light: 70, co2: 400, temperature: 25
+        };
+        
+        let healthChange = 0;
+        
+        if (currentFactors.temperature > 35) {
+          healthChange -= (currentFactors.temperature - 35) * 0.5 * (day + 1) * 0.1;
+        } else if (currentFactors.temperature < 15) {
+          healthChange -= (15 - currentFactors.temperature) * 0.3 * (day + 1) * 0.1;
+        }
+        
+        if (currentFactors.light < 50) {
+          healthChange -= (50 - currentFactors.light) * 0.2 * (day + 1) * 0.05;
+        }
+        
+        if (currentFactors.co2 < 300) {
+          healthChange -= (300 - currentFactors.co2) * 0.1;
+        }
+        
+        const health = Math.max(0, Math.min(100, startingHealth + healthChange));
+        
+        data.push({
+          day: day + 1,
+          health,
+          light: currentFactors.light,
+          co2: currentFactors.co2,
+          temperature: currentFactors.temperature,
+          photosynthesisRate: Math.min(100, health * 0.9)
+        });
+      }
+      
+      return data;
+    };
+
+    if (active) {
+      const newData = generateTimelapseData();
+      setSimulationData(newData);
+      // Reset to day 0 when conditions change for immediate visual feedback
+      setCurrentDay(0);
+      setIsPlaying(false);
+    }
+  }, [environmentalFactors, active, plantHistory]);
 
   useEffect(() => {
     if (isPlaying && active) {
@@ -23,49 +101,8 @@ const TimeLapse = ({ active, onToggle, plantHistory }) => {
     }
   }, [isPlaying, active, timeScale]);
 
-  const generateTimelapseData = () => {
-    if (!plantHistory.length) return [];
-    
-    const data = [];
-    const startingHealth = plantHistory[0]?.health || 85;
-    
-    for (let day = 0; day < 30; day++) {
-      const currentFactors = plantHistory[Math.min(day, plantHistory.length - 1)]?.factors || {
-        light: 70, co2: 400, temperature: 25
-      };
-      
-      let healthChange = 0;
-      
-      if (currentFactors.temperature > 35) {
-        healthChange -= (currentFactors.temperature - 35) * 0.5 * (day + 1) * 0.1;
-      } else if (currentFactors.temperature < 15) {
-        healthChange -= (15 - currentFactors.temperature) * 0.3 * (day + 1) * 0.1;
-      }
-      
-      if (currentFactors.light < 50) {
-        healthChange -= (50 - currentFactors.light) * 0.2 * (day + 1) * 0.05;
-      }
-      
-      if (currentFactors.co2 < 300) {
-        healthChange -= (300 - currentFactors.co2) * 0.1;
-      }
-      
-      const health = Math.max(0, Math.min(100, startingHealth + healthChange));
-      
-      data.push({
-        day: day + 1,
-        health,
-        light: currentFactors.light,
-        co2: currentFactors.co2,
-        temperature: currentFactors.temperature,
-        photosynthesisRate: Math.min(100, health * 0.9)
-      });
-    }
-    
-    return data;
-  };
-
-  const timelapseData = generateTimelapseData();
+  // Use cached simulation data or fallback
+  const timelapseData = simulationData.length > 0 ? simulationData : [];
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -99,6 +136,13 @@ const TimeLapse = ({ active, onToggle, plantHistory }) => {
         <div>
           <h2 className="text-2xl font-bold text-white mb-2">30-Day Time-Lapse</h2>
           <p className="text-gray-400">Observe long-term plant response patterns</p>
+          {environmentalFactors && (
+            <div className="mt-2 text-sm text-blue-300">
+              <span className="bg-slate-700 px-2 py-1 rounded mr-2">
+                Current: {environmentalFactors.light}% Light, {environmentalFactors.co2}ppm CO₂, {environmentalFactors.temperature}°C
+              </span>
+            </div>
+          )}
         </div>
         <motion.button
           className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
@@ -110,7 +154,7 @@ const TimeLapse = ({ active, onToggle, plantHistory }) => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          {active ? 'Exit Time-Lapse' : 'Start Time-Lapse'}
+          {active ? 'Stop Simulation' : 'Simulate 30 Days'}
         </motion.button>
       </div>
 

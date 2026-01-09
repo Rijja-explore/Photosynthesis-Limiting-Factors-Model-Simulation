@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useGLTF, OrbitControls, Environment } from '@react-three/drei';
 
@@ -6,9 +6,11 @@ import { useGLTF, OrbitControls, Environment } from '@react-three/drei';
 function PlantModel({ photosynthesisRate, stressLevel }) {
   const { scene } = useGLTF("/models/plant.glb");
 
-  // Normalized values from simulation
-  const growth = Math.max(0, Math.min(1, photosynthesisRate / 100));
-  const stress = Math.max(0, Math.min(1, stressLevel / 100));
+  // Normalize values - photosynthesisRate is already 0-1 from logic
+  // If it comes as percentage (0-100), convert it
+  const rate = photosynthesisRate > 1 ? photosynthesisRate / 100 : photosynthesisRate;
+  const growth = Math.max(0, Math.min(1, rate));
+  const stress = Math.max(0, Math.min(1, stressLevel));
 
   // Make the plant ULTRA-FOCUSED - extreme close-up
   const baseScale = 50.0; // Maximum scale for ultra-close plant focus
@@ -44,11 +46,15 @@ function PlantModel({ photosynthesisRate, stressLevel }) {
 // MAIN COMPONENT - CLEAN AND FOCUSED
 const PlantVisualization3D = ({ 
   environmentalFactors, 
-  plantHealth, 
-  photosynthesisRate,
-  limitingFactor 
+  plantHealth = 85,
+  photosynthesisRate = 0.5,
+  limitingFactor = 'None'
 }) => {
-  const stressLevel = 100 - plantHealth;
+  // Convert plant health (0-100) to stress level (0-1)
+  const stressLevel = (100 - plantHealth) / 100;
+  
+  // Ensure photosynthesis rate is in 0-1 range
+  const normalizedRate = photosynthesisRate > 1 ? photosynthesisRate / 100 : photosynthesisRate;
   
   return (
     <div className="w-full h-[500px] bg-gradient-to-b from-slate-900 to-slate-800 rounded-xl overflow-hidden border border-slate-700 relative">
@@ -90,7 +96,7 @@ const PlantVisualization3D = ({
 
         {/* THE REALISTIC GLTF PLANT */}
         <PlantModel
-          photosynthesisRate={photosynthesisRate}
+          photosynthesisRate={normalizedRate}
           stressLevel={stressLevel}
         />
 
@@ -113,16 +119,16 @@ const PlantVisualization3D = ({
       <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-sm rounded-lg p-3 border border-gray-600">
         <div className="flex items-center gap-3 text-white">
           <span className="text-xl">
-            {photosynthesisRate > 80 ? '🌿' : photosynthesisRate > 60 ? '🌱' : photosynthesisRate > 40 ? '⚠️' : '🥀'}
+            {normalizedRate > 0.7 ? '🌿' : normalizedRate > 0.6 ? '🌱' : normalizedRate > 0.4 ? '⚠️' : '🥀'}
           </span>
           <div>
             <div className="font-bold text-lg" style={{ 
-              color: photosynthesisRate > 80 ? '#22C55E' : photosynthesisRate > 60 ? '#84CC16' : photosynthesisRate > 40 ? '#EAB308' : '#EF4444' 
+              color: normalizedRate > 0.7 ? '#22C55E' : normalizedRate > 0.6 ? '#84CC16' : normalizedRate > 0.4 ? '#EAB308' : '#EF4444' 
             }}>
-              {photosynthesisRate > 80 ? 'Thriving' : photosynthesisRate > 60 ? 'Healthy' : photosynthesisRate > 40 ? 'Stressed' : 'Dying'}
+              {normalizedRate > 0.7 ? 'Thriving' : normalizedRate > 0.6 ? 'Stable' : normalizedRate > 0.4 ? 'Stressed' : 'Dying'}
             </div>
             <div className="text-sm text-gray-300">
-              Rate: {photosynthesisRate.toFixed(0)}%
+              Rate: {(normalizedRate * 100).toFixed(0)}%
             </div>
           </div>
         </div>
@@ -135,14 +141,14 @@ const PlantVisualization3D = ({
           <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-500"
-              style={{ width: `${Math.max(5, photosynthesisRate)}%` }}
+              style={{ width: `${Math.max(5, normalizedRate * 100)}%` }}
             />
           </div>
           <span className="text-gray-300 text-xs">
-            {photosynthesisRate > 80 ? 'Mature' :
-             photosynthesisRate > 60 ? 'Growing' :
-             photosynthesisRate > 40 ? 'Young' :
-             photosynthesisRate > 20 ? 'Seedling' : 'Struggling'}
+            {normalizedRate > 0.8 ? 'Thriving' :
+             normalizedRate > 0.6 ? 'Stable' :
+             normalizedRate > 0.4 ? 'Stressed' :
+             normalizedRate > 0.2 ? 'Struggling' : 'Dying'}
           </span>
         </div>
       </div>

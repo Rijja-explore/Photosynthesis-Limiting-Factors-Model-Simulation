@@ -6,11 +6,14 @@ import ExplanationPanel from './ExplanationPanel';
 import RecommendationEngine from './RecommendationEngine';
 import ScenarioSelector from './ScenarioSelector';
 import TimeLapse from './TimeLapse';
-import BiologyEngine from '../utils/biologyEngine';
+// BACKEND LOGIC IMPORTS - PROPER SEPARATION
+import { calculatePhotosynthesisRate, detectLimitingFactor, getRecommendation } from '../utils/photosynthesisLogic';
+import { SCENARIO_PRESETS } from '../logic/recommendationEngine';
 const Simulator = ({ onBack }) => {
+  // SIMPLE INITIAL STATE
   const [environmentalFactors, setEnvironmentalFactors] = useState({
-    light: 70,     // 0-100 scale
-    co2: 400,      // ppm
+    light: 700,     // μmol/m²/s 
+    co2: 400,       // ppm
     temperature: 25 // celsius
   });
 
@@ -22,33 +25,39 @@ const Simulator = ({ onBack }) => {
   const [timelapseActive, setTimelapseActive] = useState(false);
   const [plantHistory, setPlantHistory] = useState([]);
 
-  // Enhanced photosynthesis calculation with advanced biology engine
+  // FRONTEND → BACKEND CONNECTION 
   useEffect(() => {
-    // Use the biology engine for all calculations
-    const photosynthesisResult = BiologyEngine.calculatePhotosynthesisRate(environmentalFactors);
-    const newHealth = BiologyEngine.calculatePlantHealth(environmentalFactors, photosynthesisResult.rate);
-    const limiting = BiologyEngine.identifyLimitingFactor(environmentalFactors);
-    const newExplanations = BiologyEngine.generateExplanation(environmentalFactors, limiting, photosynthesisResult.rate);
-    const newRecommendations = BiologyEngine.generateRecommendations(environmentalFactors, limiting);
-
+    const { light, co2, temperature } = environmentalFactors;
+    
+    // Call backend logic functions
+    const photosynthesisRate = calculatePhotosynthesisRate(light, co2, temperature);
+    const limiting = detectLimitingFactor(light, co2, temperature);
+    const recommendation = getRecommendation(limiting, light, co2, temperature);
+    
+    // Update frontend state with backend results
+    const newHealth = Math.max(10, Math.min(100, photosynthesisRate * 100));
     setPlantHealth(newHealth);
     setLimitingFactor(limiting);
-    setExplanation(newExplanations[0]?.explanation || 'Analyzing plant conditions...');
-    setRecommendations(newRecommendations);
+    setExplanation(recommendation);
+    setRecommendations([{
+      action: recommendation,
+      priority: photosynthesisRate < 0.3 ? 'critical' : photosynthesisRate < 0.6 ? 'high' : 'medium'
+    }]);
 
-    // Update plant history for time-lapse
+    // Update plant history
     setPlantHistory(prev => {
       const newHistory = [...prev, { 
         health: newHealth,
-        photosynthesisRate: photosynthesisResult.rate,
+        photosynthesisRate: photosynthesisRate,
         factors: { ...environmentalFactors }, 
         limiting,
         timestamp: Date.now() 
       }];
-      return newHistory.slice(-30); // Keep last 30 data points
+      return newHistory.slice(-30);
     });
   }, [environmentalFactors]);
 
+  // HANDLE SLIDER CHANGES
   const handleFactorChange = (factor, value) => {
     setEnvironmentalFactors(prev => ({
       ...prev,
@@ -59,10 +68,14 @@ const Simulator = ({ onBack }) => {
   const handleScenarioChange = (scenario) => {
     setCurrentScenario(scenario);
     
-    // Use the biology engine's predefined scenarios
-    const scenarioData = BiologyEngine.SCENARIO_PRESETS[scenario];
+    // Use proper backend scenario presets
+    const scenarioData = SCENARIO_PRESETS[scenario];
     if (scenarioData) {
-      setEnvironmentalFactors(scenarioData.factors);
+      setEnvironmentalFactors({
+        light: scenarioData.light,
+        co2: scenarioData.co2,
+        temperature: scenarioData.temperature
+      });
     } else {
       // Default optimal conditions
       setEnvironmentalFactors({ light: 85, co2: 400, temperature: 25 });
@@ -151,13 +164,15 @@ const Simulator = ({ onBack }) => {
             <PlantVisualization3D 
               environmentalFactors={environmentalFactors}
               plantHealth={plantHealth}
-              photosynthesisRate={BiologyEngine.calculatePhotosynthesisRate(environmentalFactors).rate}
+              photosynthesisRate={calculatePhotosynthesisRate(environmentalFactors.light, environmentalFactors.co2, environmentalFactors.temperature)}
               limitingFactor={limitingFactor}
             />
             <TimeLapse 
               active={timelapseActive}
               onToggle={setTimelapseActive}
               plantHistory={plantHistory}
+              environmentalFactors={environmentalFactors}
+              currentPhotosynthesisRate={calculatePhotosynthesisRate(environmentalFactors.light, environmentalFactors.co2, environmentalFactors.temperature)}
             />
           </motion.div>
 

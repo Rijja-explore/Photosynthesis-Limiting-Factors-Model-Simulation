@@ -1,6 +1,0 @@
-# Python requirements (if needed for backend or data analysis)
-# For this React Three Fiber project, main dependencies are in package.json
-# Example (if you add Python backend):
-# flask
-# numpy
-# pandas

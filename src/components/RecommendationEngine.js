@@ -54,9 +54,9 @@ const RecommendationEngine = ({ recommendations, currentHealth }) => {
               'text-red-400'
             }`}>
               {currentHealth > 80 ? 'Thriving' :
-               currentHealth > 60 ? 'Healthy' :
+               currentHealth > 60 ? 'Stable' :
                currentHealth > 30 ? 'Stressed' :
-               'Critical Condition'}
+               'Dying'}
             </p>
           </div>
         </div>

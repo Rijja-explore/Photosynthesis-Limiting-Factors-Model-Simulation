@@ -16,7 +16,7 @@ const LandingPage = ({ onStart }) => {
       setCurrentQuote((prev) => (prev + 1) % quotes.length);
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [quotes.length]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 text-white overflow-hidden">
