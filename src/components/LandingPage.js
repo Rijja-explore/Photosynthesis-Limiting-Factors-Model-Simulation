@@ -1,146 +1,210 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 const LandingPage = ({ onStart }) => {
+  const [currentQuote, setCurrentQuote] = useState(0);
+  
+  const quotes = [
+    "Understanding plant growth through environmental factors",
+    "Simulating photosynthesis with realistic 3D visualization", 
+    "Discovering the science behind climate impact on crops",
+    "Exploring the future of sustainable agriculture"
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentQuote((prev) => (prev + 1) % quotes.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
-      <div className="flex h-full relative">
-        {/* Thriving Side */}
-        <motion.div 
-          className="flex-1 flex flex-col justify-center items-center relative bg-gradient-to-br from-green-600 via-green-500 to-green-400"
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 1 }}
-        >
-          <div className="relative w-80 h-96 flex justify-center items-end">
-            <motion.div 
-              className="relative w-24 h-72"
-              animate={{ y: [0, -5, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              {/* Thriving Plant SVG */}
-              <svg width="100%" height="100%" viewBox="0 0 100 300" className="drop-shadow-lg">
-                {/* Stem */}
-                <rect x="45" y="150" width="10" height="150" fill="#166534" rx="5"/>
-                {/* Leaves */}
-                <motion.ellipse cx="25" cy="120" rx="20" ry="8" fill="#22c55e" transform="rotate(-30 25 120)"
-                  animate={{ rx: [20, 22, 20], ry: [8, 9, 8] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-                <motion.ellipse cx="75" cy="120" rx="20" ry="8" fill="#22c55e" transform="rotate(30 75 120)"
-                  animate={{ rx: [20, 22, 20], ry: [8, 9, 8] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                />
-                <motion.ellipse cx="20" cy="140" rx="22" ry="9" fill="#16a34a" transform="rotate(-45 20 140)"
-                  animate={{ rx: [22, 24, 22], ry: [9, 10, 9] }}
-                  transition={{ duration: 2.5, repeat: Infinity }}
-                />
-                <motion.ellipse cx="80" cy="140" rx="22" ry="9" fill="#16a34a" transform="rotate(45 80 140)"
-                  animate={{ rx: [22, 24, 22], ry: [9, 10, 9] }}
-                  transition={{ duration: 2.5, repeat: Infinity, delay: 0.8 }}
-                />
-              </svg>
-            </motion.div>
-            
-            {/* Environment effects */}
-            <motion.div 
-              className="absolute top-8 left-8 w-16 h-16 bg-yellow-300 rounded-full opacity-80"
-              animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          </div>
-          <motion.h2 
-            className="text-2xl font-bold text-white mt-8 text-shadow-lg"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            Thriving Rainforest
-          </motion.h2>
-        </motion.div>
-
-        {/* Stressed Side */}
-        <motion.div 
-          className="flex-1 flex flex-col justify-center items-center relative bg-gradient-to-br from-orange-600 via-yellow-600 to-red-500"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 1, delay: 0.3 }}
-        >
-          <div className="relative w-80 h-96 flex justify-center items-end">
-            <motion.div 
-              className="relative w-24 h-72"
-              animate={{ x: [0, 1, -1, 0], rotate: [0, 0.5, -0.5, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              {/* Stressed Plant SVG */}
-              <svg width="100%" height="100%" viewBox="0 0 100 300" className="drop-shadow-lg">
-                {/* Withered Stem */}
-                <rect x="47" y="180" width="6" height="120" fill="#991b1b" rx="3"/>
-                {/* Wilted Leaves */}
-                <ellipse cx="30" cy="160" rx="15" ry="6" fill="#dc2626" transform="rotate(-40 30 160)"/>
-                <ellipse cx="70" cy="160" rx="15" ry="6" fill="#dc2626" transform="rotate(40 70 160)"/>
-                <ellipse cx="25" cy="180" rx="12" ry="5" fill="#b91c1c" transform="rotate(-50 25 180)"/>
-              </svg>
-            </motion.div>
-            
-            {/* Heat waves */}
-            <motion.div 
-              className="absolute top-12 right-12 w-12 h-12 bg-red-400 rounded-full opacity-70"
-              animate={{ scale: [1, 1.3, 1], skewX: [0, 5, 0] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-          </div>
-          <motion.h2 
-            className="text-2xl font-bold text-white mt-8 text-shadow-lg"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.8 }}
-          >
-            Desert Survival
-          </motion.h2>
-        </motion.div>
-      </div>
-
-      {/* Central Question */}
-      <motion.div 
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center text-white z-10 bg-black bg-opacity-60 backdrop-blur-md p-12 rounded-3xl border border-white border-opacity-20"
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.8, delay: 1 }}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 text-white overflow-hidden">
+      {/* Hero Section */}
+      <motion.div
+        className="relative min-h-screen flex items-center justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
       >
-        <motion.h1 
-          className="text-5xl font-bold mb-6 bg-gradient-to-r from-white via-green-200 to-white bg-clip-text text-transparent"
-          animate={{ opacity: [0.9, 1, 0.9] }}
-          transition={{ duration: 3, repeat: Infinity }}
-        >
-          What Made the Difference?
-        </motion.h1>
-        <p className="text-xl text-gray-200 mb-8 max-w-md mx-auto leading-relaxed">
-          Discover the hidden intelligence behind plant survival
-        </p>
-        <motion.button 
-          className="relative bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white font-bold text-xl px-12 py-6 rounded-full shadow-2xl transition-all duration-300 overflow-hidden"
-          onClick={onStart}
-          whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(34, 197, 94, 0.4)" }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 1.2 }}
-        >
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <svg className="w-full h-full" viewBox="0 0 100 100">
+            <defs>
+              <pattern id="hexagons" x="0" y="0" width="10" height="8.66" patternUnits="userSpaceOnUse">
+                <polygon points="5,0 9.33,2.5 9.33,6.16 5,8.66 0.67,6.16 0.67,2.5" 
+                         fill="none" stroke="currentColor" strokeWidth="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#hexagons)" />
+          </svg>
+        </div>
+
+        {/* Main Content */}
+        <div className="container mx-auto px-6 text-center z-10">
           <motion.div
-            className="absolute inset-0 bg-white opacity-0 rounded-full"
-            whileHover={{ opacity: [0, 0.1, 0] }}
-            transition={{ duration: 0.6, repeat: Infinity }}
-          />
-          <span className="relative z-10">Discover Why</span>
-          
-          {/* Pulse ring */}
-          <motion.div
-            className="absolute inset-0 border-2 border-green-300 rounded-full"
-            animate={{ scale: [1, 1.3], opacity: [0.8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-          />
-        </motion.button>
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            {/* Logo/Icon */}
+            <div className="mb-8">
+              <motion.div
+                className="w-24 h-24 mx-auto bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-4xl mb-4"
+                whileHover={{ scale: 1.1, rotate: 360 }}
+                transition={{ duration: 0.5 }}
+              >
+                🌱
+              </motion.div>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-green-400 via-emerald-500 to-blue-500 bg-clip-text text-transparent">
+              PhotoSynth
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-gray-300 mb-4 font-light">
+              Intelligent Photosynthesis Limiting Factors Simulator
+            </p>
+
+            {/* Dynamic Tagline */}
+            <motion.div
+              key={currentQuote}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="h-16 flex items-center justify-center mb-8"
+            >
+              <p className="text-lg text-emerald-400 italic">
+                {quotes[currentQuote]}
+              </p>
+            </motion.div>
+
+            {/* Feature Highlights */}
+            <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto">
+              <motion.div
+                className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-gray-700"
+                whileHover={{ scale: 1.05, y: -5 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="text-3xl mb-3">🧬</div>
+                <h3 className="text-xl font-semibold mb-2 text-green-400">Real Biology</h3>
+                <p className="text-gray-400 text-sm">
+                  Law of Limiting Factors with realistic enzyme kinetics and environmental responses
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-gray-700"
+                whileHover={{ scale: 1.05, y: -5 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+              >
+                <div className="text-3xl mb-3">🌿</div>
+                <h3 className="text-xl font-semibold mb-2 text-emerald-400">3D Plant Growth</h3>
+                <p className="text-gray-400 text-sm">
+                  Watch plants grow and respond in real-time 3D visualization using Three.js
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-gray-700"
+                whileHover={{ scale: 1.05, y: -5 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+              >
+                <div className="text-3xl mb-3">🧠</div>
+                <h3 className="text-xl font-semibold mb-2 text-blue-400">AI Insights</h3>
+                <p className="text-gray-400 text-sm">
+                  Intelligent explanations and recommendations based on environmental factors
+                </p>
+              </motion.div>
+            </div>
+
+            {/* Action Button */}
+            <div className="flex justify-center mb-8">
+              <motion.button
+                className="px-12 py-5 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl font-bold text-xl shadow-2xl hover:shadow-green-500/30 transition-all duration-300 border-2 border-green-400/20 hover:border-green-400/40"
+                whileHover={{ 
+                  scale: 1.05, 
+                  boxShadow: "0 0 40px rgba(34, 197, 94, 0.5)",
+                  y: -2
+                }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onStart}
+              >
+                🚀 Start Simulation
+              </motion.button>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto text-center">
+              <div className="bg-black/20 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
+                <div className="text-2xl font-bold text-green-400">6+</div>
+                <div className="text-sm text-gray-400">Real Scenarios</div>
+              </div>
+              <div className="bg-black/20 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
+                <div className="text-2xl font-bold text-emerald-400">3D</div>
+                <div className="text-sm text-gray-400">Plant Models</div>
+              </div>
+              <div className="bg-black/20 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
+                <div className="text-2xl font-bold text-blue-400">30</div>
+                <div className="text-sm text-gray-400">Day Simulation</div>
+              </div>
+              <div className="bg-black/20 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
+                <div className="text-2xl font-bold text-purple-400">∞</div>
+                <div className="text-sm text-gray-400">Learning</div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Floating Elements */}
+        <motion.div
+          className="absolute top-20 left-10 text-green-400 text-6xl opacity-20"
+          animate={{ 
+            y: [0, -20, 0],
+            rotate: [0, 10, 0]
+          }}
+          transition={{ 
+            duration: 4, 
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          🍃
+        </motion.div>
+
+        <motion.div
+          className="absolute bottom-20 right-10 text-emerald-400 text-5xl opacity-20"
+          animate={{ 
+            y: [0, 20, 0],
+            rotate: [0, -15, 0]
+          }}
+          transition={{ 
+            duration: 5, 
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+        >
+          🌿
+        </motion.div>
+
+        <motion.div
+          className="absolute top-1/2 right-20 text-blue-400 text-4xl opacity-20"
+          animate={{ 
+            x: [0, 10, 0],
+            y: [0, -10, 0]
+          }}
+          transition={{ 
+            duration: 3, 
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
+        >
+          💨
+        </motion.div>
       </motion.div>
     </div>
   );

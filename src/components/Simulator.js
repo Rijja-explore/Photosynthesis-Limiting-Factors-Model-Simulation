@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import PlantVisualization from './PlantVisualization';
+import PlantVisualization3D from './PlantVisualization3D';
 import EnvironmentalControls from './EnvironmentalControls';
 import ExplanationPanel from './ExplanationPanel';
 import RecommendationEngine from './RecommendationEngine';
 import ScenarioSelector from './ScenarioSelector';
 import TimeLapse from './TimeLapse';
-
+import BiologyEngine from '../utils/biologyEngine';
 const Simulator = ({ onBack }) => {
   const [environmentalFactors, setEnvironmentalFactors] = useState({
     light: 70,     // 0-100 scale
@@ -22,150 +22,32 @@ const Simulator = ({ onBack }) => {
   const [timelapseActive, setTimelapseActive] = useState(false);
   const [plantHistory, setPlantHistory] = useState([]);
 
-  // Photosynthesis calculation and limiting factor detection
+  // Enhanced photosynthesis calculation with advanced biology engine
   useEffect(() => {
-    const newHealth = calculatePlantHealth(environmentalFactors);
-    const limiting = detectLimitingFactor(environmentalFactors);
-    const newExplanation = generateExplanation(environmentalFactors, limiting);
-    const newRecommendations = generateRecommendations(environmentalFactors, limiting);
+    // Use the biology engine for all calculations
+    const photosynthesisResult = BiologyEngine.calculatePhotosynthesisRate(environmentalFactors);
+    const newHealth = BiologyEngine.calculatePlantHealth(environmentalFactors, photosynthesisResult.rate);
+    const limiting = BiologyEngine.identifyLimitingFactor(environmentalFactors);
+    const newExplanations = BiologyEngine.generateExplanation(environmentalFactors, limiting, photosynthesisResult.rate);
+    const newRecommendations = BiologyEngine.generateRecommendations(environmentalFactors, limiting);
 
     setPlantHealth(newHealth);
     setLimitingFactor(limiting);
-    setExplanation(newExplanation);
+    setExplanation(newExplanations[0]?.explanation || 'Analyzing plant conditions...');
     setRecommendations(newRecommendations);
 
     // Update plant history for time-lapse
     setPlantHistory(prev => {
       const newHistory = [...prev, { 
-        health: newHealth, 
+        health: newHealth,
+        photosynthesisRate: photosynthesisResult.rate,
         factors: { ...environmentalFactors }, 
+        limiting,
         timestamp: Date.now() 
       }];
       return newHistory.slice(-30); // Keep last 30 data points
     });
   }, [environmentalFactors]);
-
-  const calculatePlantHealth = (factors) => {
-    const { light, co2, temperature } = factors;
-    
-    // Optimal ranges
-    const optimalLight = 80;
-    const optimalCO2 = 400;
-    
-    // Calculate efficiency for each factor
-    let lightEfficiency = Math.max(0, Math.min(1, light / optimalLight));
-    let co2Efficiency = Math.max(0, Math.min(1, co2 / optimalCO2));
-    let tempEfficiency = 1;
-    
-    // Temperature has a bell curve - efficiency drops on both sides
-    if (temperature < 10 || temperature > 40) {
-      tempEfficiency = 0;
-    } else if (temperature < 20 || temperature > 30) {
-      const deviation = Math.min(Math.abs(temperature - 20), Math.abs(temperature - 30));
-      tempEfficiency = Math.max(0, 1 - (deviation / 10));
-    }
-    
-    // Light becomes limiting below 30
-    if (light < 30) lightEfficiency = light / 100;
-    
-    // CO2 efficiency plateaus above 800ppm
-    if (co2 > 800) co2Efficiency = 1;
-    
-    // Health is limited by the most restrictive factor (Liebig's Law)
-    const limitingEfficiency = Math.min(lightEfficiency, co2Efficiency, tempEfficiency);
-    return Math.round(limitingEfficiency * 100);
-  };
-
-  const detectLimitingFactor = (factors) => {
-    const { light, co2, temperature } = factors;
-    
-    // Calculate how far each factor is from optimal
-    const lightScore = light < 30 ? light / 100 : Math.min(1, light / 80);
-    const co2Score = Math.min(1, co2 / 400);
-    const tempScore = temperature < 10 || temperature > 40 ? 0 : 
-                     temperature < 20 || temperature > 30 ? 
-                     Math.max(0, 1 - Math.min(Math.abs(temperature - 20), Math.abs(temperature - 30)) / 10) : 1;
-    
-    if (tempScore <= lightScore && tempScore <= co2Score) return 'temperature';
-    if (lightScore <= co2Score) return 'light';
-    return 'co2';
-  };
-
-  const generateExplanation = (factors, limiting) => {
-    const { light, co2, temperature } = factors;
-    
-    switch (limiting) {
-      case 'temperature':
-        if (temperature > 40) {
-          return `At ${temperature}°C, enzyme structures are breaking down, making photosynthesis impossible regardless of perfect light and CO₂ levels. Cellular respiration is consuming more energy than photosynthesis can produce.`;
-        } else if (temperature < 10) {
-          return `At ${temperature}°C, molecular movement is too slow for efficient photosynthesis. Enzymes are nearly inactive, severely limiting the plant's ability to process light energy.`;
-        }
-        return `Temperature stress is affecting enzyme efficiency. The plant's biochemical processes are operating below optimal capacity.`;
-      
-      case 'light':
-        if (light < 20) {
-          return `With only ${light}% light intensity, the plant cannot capture enough photons to drive photosynthesis effectively. The light-dependent reactions are severely limited.`;
-        }
-        return `Light is currently limiting photosynthesis. Even with adequate CO₂ and temperature, insufficient light energy is preventing optimal glucose production.`;
-      
-      case 'co2':
-        if (co2 < 200) {
-          return `At ${co2} ppm CO₂, the Calvin cycle cannot function properly. The plant lacks sufficient carbon dioxide molecules to build glucose, even with perfect light and temperature.`;
-        }
-        return `CO₂ concentration is the limiting factor. The plant has adequate energy from light but insufficient raw materials for carbon fixation.`;
-      
-      default:
-        return `All factors are well-balanced. The plant is operating near optimal photosynthetic capacity.`;
-    }
-  };
-
-  const generateRecommendations = (factors, limiting) => {
-    const recommendations = [];
-    const { light, co2, temperature } = factors;
-    
-    switch (limiting) {
-      case 'temperature':
-        if (temperature > 40) {
-          recommendations.push({
-            action: `Reduce temperature by ${Math.round(temperature - 30)}°C`,
-            impact: `Will restore enzyme function and increase photosynthesis rate by ${Math.round((temperature - 30) * 2)}%`,
-            priority: 'critical'
-          });
-        } else if (temperature < 10) {
-          recommendations.push({
-            action: `Increase temperature by ${Math.round(20 - temperature)}°C`,
-            impact: `Will restore enzyme activity and improve photosynthesis efficiency by ${Math.round((20 - temperature) * 3)}%`,
-            priority: 'critical'
-          });
-        }
-        break;
-      
-      case 'light':
-        const lightIncrease = Math.min(100 - light, 30);
-        recommendations.push({
-          action: `Increase light intensity by ${lightIncrease}%`,
-          impact: `Will boost photon capture and improve glucose production by ${Math.round(lightIncrease * 1.5)}%`,
-          priority: light < 20 ? 'critical' : 'high'
-        });
-        break;
-      
-      case 'co2':
-        const co2Increase = Math.min(800 - co2, 200);
-        recommendations.push({
-          action: `Increase CO₂ concentration by ${co2Increase} ppm`,
-          impact: `Will enhance carbon fixation and increase photosynthesis rate by ${Math.round(co2Increase * 0.3)}%`,
-          priority: co2 < 300 ? 'high' : 'medium'
-        });
-        break;
-      
-      default:
-        // No specific recommendations when all factors are optimal
-        break;
-    }
-    
-    return recommendations;
-  };
 
   const handleFactorChange = (factor, value) => {
     setEnvironmentalFactors(prev => ({
@@ -177,18 +59,13 @@ const Simulator = ({ onBack }) => {
   const handleScenarioChange = (scenario) => {
     setCurrentScenario(scenario);
     
-    switch (scenario) {
-      case 'climate2050':
-        setEnvironmentalFactors({ light: 75, co2: 500, temperature: 32 });
-        break;
-      case 'drought':
-        setEnvironmentalFactors({ light: 85, co2: 380, temperature: 38 });
-        break;
-      case 'greenhouse':
-        setEnvironmentalFactors({ light: 90, co2: 600, temperature: 26 });
-        break;
-      default:
-        setEnvironmentalFactors({ light: 70, co2: 400, temperature: 25 });
+    // Use the biology engine's predefined scenarios
+    const scenarioData = BiologyEngine.SCENARIO_PRESETS[scenario];
+    if (scenarioData) {
+      setEnvironmentalFactors(scenarioData.factors);
+    } else {
+      // Default optimal conditions
+      setEnvironmentalFactors({ light: 85, co2: 400, temperature: 25 });
     }
   };
 
@@ -271,9 +148,10 @@ const Simulator = ({ onBack }) => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <PlantVisualization 
-              health={plantHealth}
-              factors={environmentalFactors}
+            <PlantVisualization3D 
+              environmentalFactors={environmentalFactors}
+              plantHealth={plantHealth}
+              photosynthesisRate={BiologyEngine.calculatePhotosynthesisRate(environmentalFactors).rate}
               limitingFactor={limitingFactor}
             />
             <TimeLapse 
